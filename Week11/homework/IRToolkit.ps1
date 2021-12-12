@@ -7,7 +7,7 @@ $resultsLoc = Read-Host -Prompt "Enter the location you want the results for the
 
 # The file that will be used to store the checksums created by each file being hashed
 $checkLoc = $resultsLoc + "\checksums.txt"
-New-Item $checkLoc
+New-Item $checkLoc | Out-Null
 
 # Function to retrieve the artifacts, output to csv, and hash the outputs. 
 function getArtifacts() {
@@ -27,7 +27,7 @@ function getArtifacts() {
 
     # 3. All TCP network sockets
     $tcpLoc = $resultsLoc + "\tcpSockets.csv"
-    Get-WmiObject -Class win32_NetworkAdapterConfiguration | Export-Csv -Path $tcpLoc -NoTypeInformation
+    Get-NetIPConfiguration | Export-Csv -Path $tcpLoc -NoTypeInformation
     $tcpSum = Get-FileHash -Path $tcpLoc
     Add-Content $checkLoc ($tcpSum.Hash+' '+$tcpSum.Path)
 
@@ -39,7 +39,7 @@ function getArtifacts() {
 
     # 5. All NetworkAdapterConfiguration information.
     $netadLoc = $resultsLoc + "\netAdapterConfig.csv"
-    Get-NetIPConfiguration | Export-Csv -Path $netadLoc -NoTypeInformation
+    Get-WmiObject -Class win32_NetworkAdapterConfiguration | Export-Csv -Path $netadLoc -NoTypeInformation
     $netadSum = Get-FileHash -Path $netadLoc
     Add-Content $checkLoc ($netadSum.Hash+' '+$netadSum.Path)
 
@@ -57,13 +57,13 @@ function getArtifacts() {
     # 2. Get registry entries with Get-ItemProperty. THis is helpful in IR to find potentially suspicious registry entries.
     # Remove-ItemProperty can be used for removing suspicious/harmful or persistent registry entries. 
     $regLoc = $resultsLoc + "\regEntries.csv"
-    Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'| Export-Csv -Path $regLoc -NoTypeInformation
+    Get-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion | Export-Csv -Path $regLoc -NoTypeInformation
     $regSum = Get-FileHash -Path $regLoc
     Add-Content $checkLoc ($regSum.Hash+' '+$regSum.Path)
 
     # 3. Get relevant core system information like OS, BIOS, Windows info with Get-ComputerInfo. This is useful to gather a baseline knowledge about
     # the system and to determine any compromises in software and firmware to look for potential attack vectors.
-    $sysLoc = $resultsLog + "\systemInfo.csv"
+    $sysLoc = $resultsLoc + "\systemInfo.csv"
     Get-ComputerInfo | Export-Csv -Path $sysLoc -NoTypeInformation
     $sysSum = Get-FileHash -Path $sysLoc
     Add-Content $checkLoc ($sysSum.Hash+' '+$sysSum.Path)
@@ -95,7 +95,7 @@ function zipFiles(){
 
     #Creation of file to store the hash of the zip file and the process of putting the hash into that file
     $zipTxt = $readZip + "\zip_checksum.txt"
-    New-Item $zipTxt
+    New-Item $zipTxt | Out-Null
     $zipSum = Get-FileHash -Path $zipLoc
     Add-Content $zipTxt ($zipSum.Hash+' '+$zipSum.Path)
 
